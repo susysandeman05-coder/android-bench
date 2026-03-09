@@ -35,5 +35,34 @@ class TestTaskValidatorSubprocess(unittest.TestCase):
             self.validator.run_command(command)
 
 
+class TestTaskValidatorFiltering(unittest.TestCase):
+    def setUp(self):
+        self.validator = TaskValidator(output_path="test_output.yaml")
+
+    @patch("utils.task_validator.task_validator.TASKS_DIR", Path("dataset/tasks"))
+    @patch("utils.task_validator.task_validator.ROOT_DIR", Path("."))
+    def test_detect_task_changes_excludes_base_images(self):
+        # Mock run_command to return specific changed files
+        self.validator.run_command = MagicMock()
+
+        # simulated output from git diff-tree
+        # dataset/tasks/task1/file.txt -> should be detected
+        # dataset/tasks/task2/base_images/image.png -> should be IGNORED
+        # dataset/tasks/task3/src/main.py -> should be detected
+        changed_files_output = (
+            "M\tdataset/tasks/task1/file.txt\n"
+            "M\tdataset/tasks/base_images/task2/image.png\n"
+            "M\tdataset/tasks/task3/src/main.py"
+        )
+        self.validator.run_command.return_value = changed_files_output
+
+        changed_tasks = self.validator._detect_task_changes()
+
+        self.assertIn("task1", changed_tasks)
+        self.assertNotIn("task2", changed_tasks)
+        self.assertIn("task3", changed_tasks)
+        self.assertEqual(len(changed_tasks), 2)
+
+
 if __name__ == "__main__":
     unittest.main()

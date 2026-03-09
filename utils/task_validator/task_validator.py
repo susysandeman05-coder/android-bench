@@ -102,6 +102,7 @@ class TaskValidator:
                     Path(f).relative_to(tasks_rel_path).parts[0]
                     for f in changed_files
                     if f.startswith(f"{str_tasks_rel_path}/")
+                    and "base_images" not in Path(f).parts
                     and len(Path(f).parts) > len(tasks_rel_path.parts) + 1
                 }
             )
